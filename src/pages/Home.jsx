@@ -5,6 +5,7 @@ import HeroSelector from '../components/HeroSelector.jsx';
 import LoadingScreen from '../components/LoadingScreen.jsx';
 import { getModels, getMatchPlayers, analyzeMatch } from '../services/api.js';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { getHeroName } from '../data/heroNames.js';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -37,7 +38,9 @@ export default function Home() {
       setPlayers(data.players);
       setSelectedSlot(null);
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      const detail = err.formattedMessage || err.response?.data?.error || err.message;
+      setError(detail);
+      window.alert(`获取对局数据失败\n\n${detail}`);
     } finally {
       setLoading(false);
     }
@@ -62,11 +65,14 @@ export default function Home() {
         report: data.report,
         chatHistory: [],
         modelUsed: data.modelUsed,
+        usedKnowledgeBase: data.usedKnowledgeBase,
       };
       saveMatch(matchRecord);
       navigate(`/report/${matchId}`);
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      const detail = err.formattedMessage || err.response?.data?.error || err.message;
+      setError(detail);
+      window.alert(`分析失败\n\n${detail}\n\n请检查对局ID、网络连接，或稍后重试。`);
       setLoading(false);
     }
   }
@@ -125,7 +131,7 @@ export default function Home() {
                 >
                   <div className="text-white">对局 {m.matchId}</div>
                   <div className="text-sm text-gray-400">
-                    英雄 #{m.hero} · {m.result === 'win' ? '胜' : '负'} · {new Date(m.analyzedAt).toLocaleDateString()}
+                    {getHeroName(m.hero)} · {m.result === 'win' ? '胜' : '负'} · {new Date(m.analyzedAt).toLocaleDateString()}
                   </div>
                 </button>
               ))}

@@ -82,7 +82,20 @@ export default function Report() {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
-        <MatchOverview match={match.match || match} />
+        <div className="flex items-center justify-between mb-4">
+          <MatchOverview match={match.match || match} />
+          <div className="ml-4 shrink-0">
+            {match.usedKnowledgeBase ? (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300 border border-green-700">
+                已结合知识库
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-400 border border-gray-700">
+                纯 GPT 分析
+              </span>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div className="space-y-4">
             <StatRadar data={match.report || {}} />

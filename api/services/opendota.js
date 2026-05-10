@@ -1,3 +1,5 @@
+import { getHeroName } from '../data/heroNames.js';
+
 const OPENDOTA_BASE_URL = process.env.OPENDOTA_BASE_URL || 'https://api.opendota.com/api';
 
 export async function fetchMatch(matchId) {
@@ -14,6 +16,7 @@ export function extractPlayerList(matchData) {
   return matchData.players.map((p) => ({
     slot: p.player_slot,
     hero: p.hero_id,
+    heroName: getHeroName(p.hero_id),
     name: p.personaname || `玩家 ${p.player_slot}`,
     kda: `${p.kills}/${p.deaths}/${p.assists}`,
     team: p.player_slot < 5 ? 'radiant' : 'dire',
@@ -64,6 +67,7 @@ export function extractMatchSummary(matchData, playerSlot) {
     radiantWin: matchData.radiant_win,
     playerSlot,
     hero: p?.hero_id,
+    heroName: getHeroName(p?.hero_id),
     level: p?.level,
     kda: `${p?.kills}/${p?.deaths}/${p?.assists}`,
     gpm: p?.gold_per_min,

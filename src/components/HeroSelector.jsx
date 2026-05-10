@@ -1,3 +1,5 @@
+import { getHeroName } from '../data/heroNames.js';
+
 export default function HeroSelector({ players, selectedSlot, setSelectedSlot, onAnalyze, loading }) {
   return (
     <div className="space-y-4">
@@ -13,7 +15,7 @@ export default function HeroSelector({ players, selectedSlot, setSelectedSlot, o
                 : 'border-gray-700 bg-dota-card hover:border-gray-500'
             }`}
           >
-            <div className="text-white font-medium">英雄 #{p.hero}</div>
+            <div className="text-white font-medium">{getHeroName(p.hero)}</div>
             <div className="text-sm text-gray-400">{p.name}</div>
             <div className="text-sm text-gray-500">KDA: {p.kda}</div>
             <div className={`text-xs mt-1 ${p.team === 'radiant' ? 'text-green-400' : 'text-red-400'}`}>

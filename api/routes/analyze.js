@@ -19,7 +19,14 @@ router.post('/', async (req, res, next) => {
     const matchSummary = extractMatchSummary(matchData, playerSlot);
 
     const ragQuery = `${playerData.name} 使用 ${playerData.hero}，${matchSummary.result === 'win' ? '获胜' : '失败'}，时长 ${matchSummary.durationMin} 分钟，KDA ${matchSummary.kda}，GPM ${matchSummary.gpm}`;
-    const ragDocs = await retrieveRelevantDocs(ragQuery, 3);
+    let ragDocs = [];
+    let usedKnowledgeBase = false;
+    try {
+      ragDocs = await retrieveRelevantDocs(ragQuery, 3);
+      usedKnowledgeBase = ragDocs.length > 0;
+    } catch (ragErr) {
+      console.warn('知识库检索失败，将直接依赖 GPT 分析：', ragErr.message);
+    }
 
     const { raw, modelUsed } = await analyzeMatch({
       matchData,
@@ -46,6 +53,7 @@ router.post('/', async (req, res, next) => {
       report,
       modelUsed,
       ragDocsUsed: ragDocs.length,
+      usedKnowledgeBase,
     });
   } catch (err) {
     if (err.code === 'UNSUPPORTED_MODE') {

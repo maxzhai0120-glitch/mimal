@@ -27,7 +27,7 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
     ? '以下是几篇与当前对局最相关的高手复盘参考：\n\n' +
       ragDocs.map((doc, i) => `--- 参考 ${i + 1} ---\n${doc.body}`).join('\n\n') +
       '\n\n请结合以上参考思路，'
-    : '';
+    : '（本次分析未检索到相关知识库内容，将完全基于对局数据进行分析。）\n\n';
 
   const systemPrompt = `你是一位 8000 分以上的 DOTA2 教练，擅长通过数据帮助玩家提升水平。你的分析风格直接、具体，不泛泛而谈。你会结合具体数据指出问题，并给出可操作的改进建议。输出必须严格按 JSON 格式。`;
 
