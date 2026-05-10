@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import MatchOverview from '../components/MatchOverview.jsx';
 import StatRadar from '../components/StatRadar.jsx';
 import GoldCurve from '../components/GoldCurve.jsx';
@@ -17,8 +17,12 @@ export default function Report() {
   const { getMatch, saveMatch, updateMatchReport, updateChatHistory } = useLocalStorage();
   const [match, setMatch] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
+  const initializedMatchId = useRef(null);
 
   useEffect(() => {
+    if (initializedMatchId.current === matchId) return;
+    initializedMatchId.current = matchId;
+
     const stateMatch = location.state?.matchRecord;
     if (stateMatch) {
       setMatch(stateMatch);
@@ -76,16 +80,26 @@ export default function Report() {
     );
   }
 
-  const goldData = match.report?.goldTicks?.map((g, i) => ({ minute: i, gold: g })) || [];
+  const pd = match.playerData || {};
+  const goldData = (pd.goldTicks || []).map((g, i) => ({ minute: i, gold: g }));
   const contribData = [
-    { name: '伤害', value: match.report?.heroDamage || 0 },
-    { name: '治疗', value: match.report?.heroHealing || 0 },
-    { name: '控制', value: match.report?.stunDuration || 0 },
+    { name: '伤害', value: pd.heroDamage || 0 },
+    { name: '治疗', value: pd.heroHealing || 0 },
+    { name: '控制', value: pd.stunDuration || 0 },
   ];
-  const itemData = (match.report?.purchases || []).map((p) => ({
+  const itemData = (pd.purchases || []).map((p) => ({
     time: `${Math.floor(p.time / 60)}:${String(p.time % 60).padStart(2, '0')}`,
     itemId: p.key,
   }));
+
+  const durationMin = match.match?.durationMin || 1;
+  const radarData = {
+    lastHitScore: Math.min(Math.round(((pd.lastHits || 0) / durationMin) * 2.5), 100),
+    gpmScore: Math.min(Math.round((pd.gpm || 0) / 6), 100),
+    damageScore: Math.min(Math.round(((pd.heroDamage || 0) / durationMin) / 20), 100),
+    survivalScore: Math.max(0, Math.min(100, 100 - (pd.kda?.deaths || 0) * 5)),
+    teamScore: Math.min(Math.round(((pd.obsPlaced || 0) * 8 + (pd.senPlaced || 0) * 5 + (pd.kda?.assists || 0) * 3)), 100),
+  };
 
   return (
     <div className="min-h-screen p-6">
@@ -106,7 +120,7 @@ export default function Report() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div className="space-y-4">
-            <StatRadar data={match.report || {}} />
+            <StatRadar data={radarData} />
             <GoldCurve data={goldData} />
             <ContributionBars data={contribData} />
             <ItemTimeline items={itemData} />

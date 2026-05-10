@@ -50,6 +50,7 @@ router.post('/', async (req, res, next) => {
 
     res.json({
       match: matchSummary,
+      playerData,
       report,
       modelUsed,
       ragDocsUsed: ragDocs.length,

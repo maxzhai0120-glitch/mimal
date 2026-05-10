@@ -62,6 +62,7 @@ export default function Home() {
         hero: data.match.hero,
         playerSlot: selectedSlot,
         result: data.match.result,
+        playerData: data.playerData,
         report: data.report,
         chatHistory: [],
         modelUsed: data.modelUsed,

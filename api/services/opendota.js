@@ -48,6 +48,7 @@ export function extractPlayerDetail(matchData, playerSlot) {
     goldTicks: p.gold_t?.map((g, i) => ({ minute: i, gold: g })) || [],
     obsPlaced: p.obs_placed || 0,
     senPlaced: p.sen_placed || 0,
+    stunDuration: p.stuns || 0,
     lane: p.lane,
     laneRole: p.lane_role,
     isRadiant: p.isRadiant,
