@@ -83,7 +83,7 @@ export default function Report() {
   }
 
   const pd = match.playerData || {};
-  const goldData = (pd.goldTicks || []).map((g, i) => ({ minute: i, gold: g }));
+  const goldData = pd.goldTicks || [];
   const contribData = [
     { name: '伤害', value: pd.heroDamage || 0 },
     { name: '治疗', value: pd.heroHealing || 0 },
