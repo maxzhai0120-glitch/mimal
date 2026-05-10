@@ -60,7 +60,8 @@ export default function Report() {
         newMessages,
         match.report
       );
-      const withReply = [...newMessages, { role: 'assistant', content: res.reply }];
+      const replyText = typeof res?.reply === 'string' ? res.reply : JSON.stringify(res?.reply);
+      const withReply = [...newMessages, { role: 'assistant', content: replyText }];
       setMatch((prev) => ({ ...prev, chatHistory: withReply }));
       updateChatHistory(matchId, withReply);
     } catch (err) {
@@ -104,6 +105,22 @@ export default function Report() {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg border border-gray-700 transition"
+            >
+              ← 回到首页
+            </button>
+            <button
+              onClick={() => navigate('/', { replace: true })}
+              className="px-4 py-2 bg-dota-gold hover:bg-yellow-400 text-dota-dark text-sm font-bold rounded-lg transition"
+            >
+              再次分析
+            </button>
+          </div>
+        </div>
         <div className="flex items-center justify-between mb-4">
           <MatchOverview match={match.match || match} />
           <div className="ml-4 shrink-0">

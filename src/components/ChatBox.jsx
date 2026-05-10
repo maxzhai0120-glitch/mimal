@@ -26,7 +26,7 @@ export default function ChatBox({ messages, onSend, loading }) {
                 ? 'bg-dota-gold text-dota-dark'
                 : 'bg-gray-800 text-gray-200'
             }`}>
-              {msg.content}
+              {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
             </div>
           </div>
         ))}

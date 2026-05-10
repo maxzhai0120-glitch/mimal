@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { getModelConfig } from '../config/models.config.js';
+import { getHeroName } from '../data/heroNames.js';
 
 const openaiClients = {};
 const anthropicClients = {};
@@ -29,9 +30,13 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
       '\n\n请结合以上参考思路，'
     : '（本次分析未检索到相关知识库内容，将完全基于对局数据进行分析。）\n\n';
 
+  const radiantHeroes = matchData.players?.filter((p) => p.isRadiant).map((p) => getHeroName(p.hero_id)) || [];
+  const direHeroes = matchData.players?.filter((p) => !p.isRadiant).map((p) => getHeroName(p.hero_id)) || [];
+  const targetHero = getHeroName(playerData.hero);
+
   const systemPrompt = `你是一位 8000 分以上的 DOTA2 教练，擅长通过数据帮助玩家提升水平。你的分析风格直接、具体，不泛泛而谈。你会结合具体数据指出问题，并给出可操作的改进建议。输出必须严格按 JSON 格式。`;
 
-  const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n请按以下 JSON 格式返回分析结果（turningPoint 只写最关键的 1 个转折点）：\n{\n  "overview": "100字内总评",\n  "turningPoint": "描述局势最关键的1个转折点及原因",\n  "laning": "对线期分析",\n  "midGame": "中期分析",\n  "lateGame": "后期分析（如适用）",\n  "itemBuild": "装备评价",\n  "skillBuild": "技能加点评价",\n  "keyMistakes": ["具体失误1", "具体失误2", "具体失误3"],\n  "improvements": ["可操作建议1", "可操作建议2", "可操作建议3"]\n}`;
+  const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n阵容信息：\n天辉：${radiantHeroes.join('、')}\n夜魇：${direHeroes.join('、')}\n分析目标英雄：${targetHero}\n\n请按以下 JSON 格式返回分析结果（turningPoint 只写最关键的 1 个转折点）：\n{\n  "overview": "100字内总评",\n  "turningPoint": "描述局势最关键的1个转折点及原因",\n  "draftAnalysis": "阵容分析：针对该英雄，这局对线好不好打、后期好不好发挥、对面有哪些英雄要特别注意、己方阵容搭配如何",\n  "laning": "对线期分析",\n  "midGame": "中期分析",\n  "lateGame": "后期分析（如适用）",\n  "itemBuild": "装备评价",\n  "skillBuild": "技能加点评价",\n  "keyMistakes": ["具体失误1", "具体失误2", "具体失误3"],\n  "improvements": ["可操作建议1", "可操作建议2", "可操作建议3"]\n}`;
 
   if (config.provider === 'openai') {
     const client = getOpenAIClient(apiKey);

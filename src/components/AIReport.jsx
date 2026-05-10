@@ -9,6 +9,7 @@ export default function AIReport({ report, onReportChange }) {
   const sections = [
     { key: 'overview', label: '局势总评', type: 'text' },
     { key: 'turningPoint', label: '局势转折点', type: 'text' },
+    { key: 'draftAnalysis', label: '阵容分析', type: 'text' },
     { key: 'laning', label: '对线期分析', type: 'text' },
     { key: 'midGame', label: '中期分析', type: 'text' },
     { key: 'lateGame', label: '后期分析', type: 'text' },
@@ -66,12 +67,12 @@ export default function AIReport({ report, onReportChange }) {
               <div className="text-gray-300 text-sm whitespace-pre-wrap">
                 {section.type === 'list' ? (
                   <ul className="list-disc list-inside space-y-1">
-                    {(value || []).map((item, idx) => (
-                      <li key={idx}>{item}</li>
+                    {(Array.isArray(value) ? value : []).map((item, idx) => (
+                      <li key={idx}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
                     ))}
                   </ul>
                 ) : (
-                  value || '无'
+                  (typeof value === 'string' ? value : JSON.stringify(value)) || '无'
                 )}
               </div>
             )}
