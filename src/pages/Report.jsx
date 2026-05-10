@@ -7,6 +7,7 @@ import ContributionBars from '../components/ContributionBars.jsx';
 import ItemTimeline from '../components/ItemTimeline.jsx';
 import AIReport from '../components/AIReport.jsx';
 import ChatBox from '../components/ChatBox.jsx';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { chatFollowUp } from '../services/api.js';
 
@@ -102,6 +103,9 @@ export default function Report() {
     teamScore: Math.min(Math.round(((pd.obsPlaced || 0) * 8 + (pd.senPlaced || 0) * 5 + (pd.kda?.assists || 0) * 3)), 100),
   };
 
+  const overviewData = match.match || match;
+  const overviewPlayerData = match.playerData;
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
@@ -122,7 +126,7 @@ export default function Report() {
           </div>
         </div>
         <div className="flex items-center justify-between mb-4">
-          <MatchOverview match={match.match || match} />
+          <MatchOverview match={overviewData} playerData={overviewPlayerData} />
           <div className="ml-4 shrink-0">
             {match.usedKnowledgeBase ? (
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300 border border-green-700">
@@ -135,22 +139,24 @@ export default function Report() {
             )}
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <div className="space-y-4">
-            <StatRadar data={radarData} />
-            <GoldCurve data={goldData} />
-            <ContributionBars data={contribData} />
-            <ItemTimeline items={itemData} />
+        <ErrorBoundary>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div className="space-y-4">
+              <StatRadar data={radarData} />
+              <GoldCurve data={goldData} />
+              <ContributionBars data={contribData} />
+              <ItemTimeline items={itemData} />
+            </div>
+            <div className="space-y-4">
+              <AIReport report={match.report} onReportChange={handleReportChange} />
+              <ChatBox
+                messages={match.chatHistory || []}
+                onSend={handleChatSend}
+                loading={chatLoading}
+              />
+            </div>
           </div>
-          <div className="space-y-4">
-            <AIReport report={match.report} onReportChange={handleReportChange} />
-            <ChatBox
-              messages={match.chatHistory || []}
-              onSend={handleChatSend}
-              loading={chatLoading}
-            />
-          </div>
-        </div>
+        </ErrorBoundary>
       </div>
     </div>
   );
