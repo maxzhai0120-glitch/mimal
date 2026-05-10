@@ -20,11 +20,16 @@ export function useLocalStorage() {
   const [cache, setCacheState] = useState(getCache);
 
   const saveMatch = useCallback((match) => {
+    const normalized = { ...match, matchId: String(match.matchId).trim() };
     setCacheState((prev) => {
-      const filtered = prev.recentMatches.filter((m) => m.matchId !== match.matchId);
-      const updated = [match, ...filtered].slice(0, MAX_MATCHES);
+      const filtered = prev.recentMatches.filter((m) => String(m.matchId).trim() !== normalized.matchId);
+      const updated = [normalized, ...filtered].slice(0, MAX_MATCHES);
       const next = { ...prev, recentMatches: updated };
-      setCache(next);
+      try {
+        setCache(next);
+      } catch (e) {
+        console.error('localStorage 写入失败', e);
+      }
       return next;
     });
   }, []);
@@ -60,7 +65,8 @@ export function useLocalStorage() {
   }, []);
 
   const getMatch = useCallback((matchId) => {
-    return cache.recentMatches.find((m) => m.matchId === matchId);
+    const id = String(matchId).trim();
+    return cache.recentMatches.find((m) => String(m.matchId).trim() === id);
   }, [cache]);
 
   return {

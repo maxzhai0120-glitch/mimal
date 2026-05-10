@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import MatchOverview from '../components/MatchOverview.jsx';
 import StatRadar from '../components/StatRadar.jsx';
@@ -12,6 +12,7 @@ import { chatFollowUp } from '../services/api.js';
 
 export default function Report() {
   const { matchId } = useParams();
+  const navigate = useNavigate();
   const { getMatch, updateMatchReport, updateChatHistory } = useLocalStorage();
   const [match, setMatch] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
@@ -20,8 +21,10 @@ export default function Report() {
     const cached = getMatch(matchId);
     if (cached) {
       setMatch(cached);
+    } else {
+      navigate('/');
     }
-  }, [matchId, getMatch]);
+  }, [matchId, getMatch, navigate]);
 
   async function handleReportChange(newReport) {
     const updated = { ...match, report: newReport };
@@ -60,7 +63,7 @@ export default function Report() {
   if (!match) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
-        未找到该对局的分析记录，请返回首页重新分析。
+        正在跳转首页...
       </div>
     );
   }

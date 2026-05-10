@@ -55,6 +55,7 @@ export default function Home() {
       const matchRecord = {
         matchId,
         analyzedAt: new Date().toISOString(),
+        match: data.match,
         hero: data.match.hero,
         playerSlot: selectedSlot,
         result: data.match.result,
