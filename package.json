@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:knowledge && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "build:knowledge": "node scripts/build-knowledge.js"
   },
