@@ -68,7 +68,7 @@ export default function Home() {
         usedKnowledgeBase: data.usedKnowledgeBase,
       };
       saveMatch(matchRecord);
-      navigate(`/report/${matchId}`);
+      navigate(`/report/${matchId}`, { state: { matchRecord } });
     } catch (err) {
       const detail = err.formattedMessage || err.response?.data?.error || err.message;
       setError(detail);

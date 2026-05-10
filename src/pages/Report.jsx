@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import MatchOverview from '../components/MatchOverview.jsx';
 import StatRadar from '../components/StatRadar.jsx';
@@ -13,18 +13,26 @@ import { chatFollowUp } from '../services/api.js';
 export default function Report() {
   const { matchId } = useParams();
   const navigate = useNavigate();
-  const { getMatch, updateMatchReport, updateChatHistory } = useLocalStorage();
+  const location = useLocation();
+  const { getMatch, saveMatch, updateMatchReport, updateChatHistory } = useLocalStorage();
   const [match, setMatch] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
+    const stateMatch = location.state?.matchRecord;
+    if (stateMatch) {
+      setMatch(stateMatch);
+      saveMatch(stateMatch);
+      window.history.replaceState({}, document.title);
+      return;
+    }
     const cached = getMatch(matchId);
     if (cached) {
       setMatch(cached);
     } else {
       navigate('/');
     }
-  }, [matchId, getMatch, navigate]);
+  }, [matchId, getMatch, saveMatch, navigate, location.state]);
 
   async function handleReportChange(newReport) {
     const updated = { ...match, report: newReport };
