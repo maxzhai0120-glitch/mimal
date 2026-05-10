@@ -10,15 +10,15 @@
     "build:knowledge": "node scripts/build-knowledge.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.3",
+    "axios": "^1.6.7",
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "openai": "^4.104.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
-    "axios": "^1.6.7",
-    "recharts": "^2.12.0",
-    "openai": "^4.0.0",
-    "@anthropic-ai/sdk": "^0.24.0",
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "recharts": "^2.12.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",
