@@ -20,6 +20,13 @@ function getAnthropicClient(apiKey) {
   return anthropicClients[apiKey];
 }
 
+function debugLog(label, data) {
+  if (process.env.DEBUG_AI !== 'true') return;
+  const timestamp = new Date().toISOString();
+  const separator = '\n' + '='.repeat(60);
+  console.log(`${separator}\n[${timestamp}] ${label}${separator}\n${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}\n`);
+}
+
 export async function analyzeMatch({ matchData, playerData, matchSummary, ragDocs, modelId }) {
   const config = getModelConfig(modelId);
   const apiKey = process.env[config.apiKeyEnv];
@@ -38,6 +45,9 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
 
   const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n阵容信息：\n天辉：${radiantHeroes.join('、')}\n夜魇：${direHeroes.join('、')}\n分析目标英雄：${targetHero}\n\n请按以下 JSON 格式返回分析结果（turningPoint 只写最关键的 1 个转折点）：\n{\n  "overview": "100字内总评",\n  "turningPoint": "描述局势最关键的1个转折点及原因",\n  "draftAnalysis": "阵容分析：针对该英雄，这局对线好不好打、后期好不好发挥、对面有哪些英雄要特别注意、己方阵容搭配如何",\n  "laning": "对线期分析",\n  "midGame": "中期分析",\n  "lateGame": "后期分析（如适用）",\n  "itemBuild": "装备评价",\n  "skillBuild": "技能加点评价",\n  "keyMistakes": ["具体失误1", "具体失误2", "具体失误3"],\n  "improvements": ["可操作建议1", "可操作建议2", "可操作建议3"]\n}`;
 
+  debugLog('ANALYZE SYSTEM PROMPT', systemPrompt);
+  debugLog('ANALYZE USER PROMPT', userPrompt);
+
   if (config.provider === 'openai') {
     const client = getOpenAIClient(apiKey);
     const completion = await client.chat.completions.create({
@@ -52,6 +62,7 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
     });
 
     const raw = completion.choices[0].message.content;
+    debugLog('ANALYZE AI RESPONSE', raw);
     return { raw, modelUsed: modelId };
   }
 
@@ -66,6 +77,7 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
     });
 
     const raw = message.content[0].text;
+    debugLog('ANALYZE AI RESPONSE', raw);
     return { raw, modelUsed: modelId };
   }
 
@@ -85,6 +97,9 @@ export async function chatFollowUp({ matchData, playerData, initialReport, chatH
     { role: 'user', content: newMessage },
   ];
 
+  debugLog('CHAT SYSTEM PROMPT', systemPrompt);
+  debugLog('CHAT MESSAGES', messages);
+
   if (config.provider === 'openai') {
     const client = getOpenAIClient(apiKey);
     const completion = await client.chat.completions.create({
@@ -93,7 +108,9 @@ export async function chatFollowUp({ matchData, playerData, initialReport, chatH
       max_tokens: config.maxTokens,
       temperature: config.temperature,
     });
-    return { reply: completion.choices[0].message.content, modelUsed: modelId };
+    const reply = completion.choices[0].message.content;
+    debugLog('CHAT AI RESPONSE', reply);
+    return { reply, modelUsed: modelId };
   }
 
   if (config.provider === 'anthropic') {
@@ -105,7 +122,9 @@ export async function chatFollowUp({ matchData, playerData, initialReport, chatH
       system: systemPrompt,
       messages,
     });
-    return { reply: message.content[0].text, modelUsed: modelId };
+    const reply = message.content[0].text;
+    debugLog('CHAT AI RESPONSE', reply);
+    return { reply, modelUsed: modelId };
   }
 
   throw new Error(`Unsupported provider: ${config.provider}`);
