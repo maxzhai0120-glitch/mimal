@@ -37,8 +37,8 @@ export async function getMatchPlayers(matchId) {
   return res.data;
 }
 
-export async function analyzeMatch(matchId, playerSlot, model) {
-  const res = await api.post('/analyze', { matchId, playerSlot, model });
+export async function analyzeMatch(matchId, playerSlot, model, playerRole) {
+  const res = await api.post('/analyze', { matchId, playerSlot, model, playerRole });
   return res.data;
 }
 

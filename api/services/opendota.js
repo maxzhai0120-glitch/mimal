@@ -1,4 +1,5 @@
 import { getHeroName } from '../data/heroNames.js';
+import { inferPosition, POSITION_NAMES } from '../data/heroPositions.js';
 
 const OPENDOTA_BASE_URL = process.env.OPENDOTA_BASE_URL || 'https://api.opendota.com/api';
 
@@ -13,19 +14,61 @@ export async function fetchMatch(matchId) {
 
 export function extractPlayerList(matchData) {
   if (!matchData.players) return [];
-  return matchData.players.map((p) => ({
-    slot: p.player_slot,
-    hero: p.hero_id,
-    heroName: getHeroName(p.hero_id),
-    name: p.personaname || `玩家 ${p.player_slot}`,
-    kda: `${p.kills}/${p.deaths}/${p.assists}`,
-    team: p.player_slot < 5 ? 'radiant' : 'dire',
-  }));
+
+  const radiantPlayers = matchData.players.filter((p) => p.player_slot < 128);
+  const direPlayers = matchData.players.filter((p) => p.player_slot >= 128);
+
+  return matchData.players.map((p) => {
+    const teamList = p.player_slot < 128 ? radiantPlayers : direPlayers;
+    const inferred = inferPosition(p.hero_id, {
+      gpm: p.gold_per_min,
+      obsPlaced: p.obs_placed || 0,
+      senPlaced: p.sen_placed || 0,
+      teamPlayers: teamList.map((tp) => ({
+        hero_id: tp.hero_id,
+        gold_per_min: tp.gold_per_min,
+        obs_placed: tp.obs_placed || 0,
+        sen_placed: tp.sen_placed || 0,
+      })),
+    });
+
+    return {
+      slot: p.player_slot,
+      hero: p.hero_id,
+      heroName: getHeroName(p.hero_id),
+      name: p.personaname || `玩家 ${p.player_slot}`,
+      kda: `${p.kills}/${p.deaths}/${p.assists}`,
+      team: p.player_slot < 5 ? 'radiant' : 'dire',
+      inferredPosition: inferred.position,
+      inferredPositionName: POSITION_NAMES[inferred.position],
+      positionConfidence: inferred.confidence,
+    };
+  });
 }
 
-export function extractPlayerDetail(matchData, playerSlot) {
+export function extractPlayerDetail(matchData, playerSlot, playerRole = null) {
   const p = matchData.players?.find((pl) => pl.player_slot === playerSlot);
   if (!p) throw new Error('未找到该玩家数据');
+
+  // 推断位置
+  const teamSlots = p.player_slot < 128 ? [0, 1, 2, 3, 4] : [128, 129, 130, 131, 132];
+  const teamPlayers = matchData.players
+    ?.filter((pl) => teamSlots.includes(pl.player_slot))
+    .map((pl) => ({
+      hero_id: pl.hero_id,
+      gold_per_min: pl.gold_per_min,
+      obs_placed: pl.obs_placed || 0,
+      sen_placed: pl.sen_placed || 0,
+    })) || [];
+
+  const inferred = inferPosition(p.hero_id, {
+    gpm: p.gold_per_min,
+    obsPlaced: p.obs_placed || 0,
+    senPlaced: p.sen_placed || 0,
+    teamPlayers,
+    playerRole,
+    playerRaw: p,
+  });
 
   return {
     slot: p.player_slot,
@@ -53,6 +96,9 @@ export function extractPlayerDetail(matchData, playerSlot) {
     laneRole: p.lane_role,
     isRadiant: p.isRadiant,
     win: p.win,
+    inferredPosition: inferred.position,
+    inferredPositionName: POSITION_NAMES[inferred.position],
+    positionConfidence: inferred.confidence,
   };
 }
 

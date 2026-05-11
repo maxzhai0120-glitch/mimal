@@ -9,7 +9,7 @@ router.post('/', async (req, res, next) => {
   try {
     const matchId = validateMatchId(req.body.matchId);
     const playerSlot = validatePlayerSlot(req.body.playerSlot);
-    const model = req.body.model || 'gpt-4o-mini';
+    const model = req.body.model || 'gpt-5.4-mini';
     const messages = req.body.messages || [];
 
     const matchData = await fetchMatch(matchId);

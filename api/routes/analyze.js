@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { fetchMatch, extractPlayerDetail, extractMatchSummary } from '../services/opendota.js';
+import { POSITION_NAMES } from '../data/heroPositions.js';
 import { retrieveRelevantDocs } from '../services/rag.js';
 import { analyzeMatch } from '../services/ai.js';
 import { validateMatchId, validatePlayerSlot, validateLobbyType } from '../utils/validators.js';
@@ -10,12 +11,13 @@ router.post('/', async (req, res, next) => {
   try {
     const matchId = validateMatchId(req.body.matchId);
     const playerSlot = validatePlayerSlot(req.body.playerSlot);
-    const model = req.body.model || 'gpt-4o-mini';
+    const model = req.body.model || 'gpt-5.4-mini';
 
     const matchData = await fetchMatch(matchId);
     validateLobbyType(matchData.lobby_type);
 
-    const playerData = extractPlayerDetail(matchData, playerSlot);
+    const playerRole = req.body.playerRole || null;
+    let playerData = extractPlayerDetail(matchData, playerSlot, playerRole);
     const matchSummary = extractMatchSummary(matchData, playerSlot);
 
     const ragQuery = `${playerData.name} 使用 ${playerData.hero}，${matchSummary.result === 'win' ? '获胜' : '失败'}，时长 ${matchSummary.durationMin} 分钟，KDA ${matchSummary.kda}，GPM ${matchSummary.gpm}`;

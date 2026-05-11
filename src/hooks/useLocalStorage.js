@@ -6,9 +6,9 @@ const MAX_MATCHES = 5;
 function getCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    return raw ? JSON.parse(raw) : { recentMatches: [], settings: { preferredModel: 'gpt-4o-mini' } };
+    return raw ? JSON.parse(raw) : { recentMatches: [], settings: { preferredModel: 'gpt-5.4-mini' } };
   } catch {
-    return { recentMatches: [], settings: { preferredModel: 'gpt-4o-mini' } };
+    return { recentMatches: [], settings: { preferredModel: 'gpt-5.4-mini' } };
   }
 }
 

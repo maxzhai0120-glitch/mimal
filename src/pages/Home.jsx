@@ -16,6 +16,7 @@ export default function Home() {
   const [models, setModels] = useState([]);
   const [players, setPlayers] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [playerRole, setPlayerRole] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analyzeStep, setAnalyzeStep] = useState(0);
@@ -37,6 +38,7 @@ export default function Home() {
       const data = await getMatchPlayers(matchId);
       setPlayers(data.players);
       setSelectedSlot(null);
+      setPlayerRole(null);
     } catch (err) {
       const detail = err.formattedMessage || err.response?.data?.error || err.message;
       setError(detail);
@@ -52,7 +54,7 @@ export default function Home() {
     setAnalyzeStep(0);
     try {
       setAnalyzeStep(1);
-      const data = await analyzeMatch(matchId, selectedSlot, model);
+      const data = await analyzeMatch(matchId, selectedSlot, model, playerRole);
       setAnalyzeStep(2);
 
       const matchRecord = {
@@ -104,6 +106,8 @@ export default function Home() {
               players={players}
               selectedSlot={selectedSlot}
               setSelectedSlot={setSelectedSlot}
+              playerRole={playerRole}
+              setPlayerRole={setPlayerRole}
               onAnalyze={handleAnalyze}
               loading={loading && !!players}
             />

@@ -15,6 +15,30 @@ export const modelConfigs = {
     temperature: 0.7,
     supportsJsonMode: true,
   },
+  'gpt-5.5': {
+    provider: 'openai',
+    model: 'gpt-5.5',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    maxTokens: 4096,
+    temperature: 0.7,
+    supportsJsonMode: true,
+  },
+  'gpt-5.4': {
+    provider: 'openai',
+    model: 'gpt-5.4',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    maxTokens: 4096,
+    temperature: 0.7,
+    supportsJsonMode: true,
+  },
+  'gpt-5.4-mini': {
+    provider: 'openai',
+    model: 'gpt-5.4-mini',
+    apiKeyEnv: 'OPENAI_API_KEY',
+    maxTokens: 4096,
+    temperature: 0.7,
+    supportsJsonMode: true,
+  },
   'claude-sonnet': {
     provider: 'anthropic',
     model: 'claude-3-5-sonnet-20241022',
@@ -30,7 +54,7 @@ export function getAvailableModels() {
     .filter(([_, config]) => process.env[config.apiKeyEnv])
     .map(([id, config]) => ({
       id,
-      name: id === 'gpt-4o-mini' ? 'GPT-4o Mini' : id === 'gpt-4o' ? 'GPT-4o' : 'Claude 3.5 Sonnet',
+      name: id === 'gpt-4o-mini' ? 'GPT-4o Mini' : id === 'gpt-4o' ? 'GPT-4o' : id === 'gpt-5.5' ? 'GPT-5.5' : id === 'gpt-5.4' ? 'GPT-5.4' : id === 'gpt-5.4-mini' ? 'GPT-5.4 Mini' : 'Claude 3.5 Sonnet',
       provider: config.provider,
     }));
 }
