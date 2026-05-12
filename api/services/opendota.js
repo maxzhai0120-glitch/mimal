@@ -3,12 +3,38 @@ import { inferPosition, POSITION_NAMES } from '../data/heroPositions.js';
 
 const OPENDOTA_BASE_URL = process.env.OPENDOTA_BASE_URL || 'https://api.opendota.com/api';
 
-export async function fetchMatch(matchId) {
-  const res = await fetch(`${OPENDOTA_BASE_URL}/matches/${matchId}`);
-  if (!res.ok) {
-    if (res.status === 404) throw new Error('未找到该对局，请检查 ID 是否正确，或确认该对局为公开比赛');
-    throw new Error(`OpenDota API error: ${res.status}`);
+async function fetchWithRetry(url, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (res.ok) return res;
+
+      if (res.status === 404) {
+        throw new Error('未找到该对局，请检查 ID 是否正确，或确认该对局为公开比赛');
+      }
+      if (res.status === 522) {
+        if (i < retries) {
+          await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+          continue;
+        }
+        throw new Error('OpenDota 服务暂时不可用（522），请稍后重试');
+      }
+      throw new Error(`OpenDota API 错误：${res.status}`);
+    } catch (err) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        if (i < retries) {
+          await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+          continue;
+        }
+        throw new Error('连接 OpenDota 超时，请检查网络或稍后重试');
+      }
+      if (i >= retries) throw err;
+    }
   }
+}
+
+export async function fetchMatch(matchId) {
+  const res = await fetchWithRetry(`${OPENDOTA_BASE_URL}/matches/${matchId}`);
   return res.json();
 }
 
