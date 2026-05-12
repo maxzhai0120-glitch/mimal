@@ -1,6 +1,6 @@
 export const reportSchema = [
   { key: 'overview', label: '局势总评', type: 'text', editable: true },
-  { key: 'turningPoint', label: '局势转折点', type: 'text', editable: true },
+  { key: 'draftAnalysis', label: '阵容分析', type: 'text', editable: true },
   { key: 'laning', label: '对线期分析', type: 'text', editable: true },
   { key: 'midGame', label: '中期分析', type: 'text', editable: true },
   { key: 'lateGame', label: '后期分析', type: 'text', editable: true },
@@ -14,7 +14,7 @@ export const reportJsonSchema = {
   type: 'object',
   properties: {
     overview: { type: 'string' },
-    turningPoint: { type: 'string' },
+    draftAnalysis: { type: 'string' },
     laning: { type: 'string' },
     midGame: { type: 'string' },
     lateGame: { type: 'string' },
@@ -23,5 +23,5 @@ export const reportJsonSchema = {
     keyMistakes: { type: 'array', items: { type: 'string' } },
     improvements: { type: 'array', items: { type: 'string' } },
   },
-  required: ['overview', 'turningPoint', 'laning', 'midGame', 'itemBuild', 'skillBuild', 'keyMistakes', 'improvements'],
+  required: ['overview', 'draftAnalysis', 'laning', 'midGame', 'itemBuild', 'skillBuild', 'keyMistakes', 'improvements'],
 };

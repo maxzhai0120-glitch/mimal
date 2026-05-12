@@ -8,7 +8,6 @@ export default function AIReport({ report, onReportChange }) {
 
   const sections = [
     { key: 'overview', label: '局势总评', type: 'text' },
-    { key: 'turningPoint', label: '局势转折点', type: 'text' },
     { key: 'draftAnalysis', label: '阵容分析', type: 'text' },
     { key: 'laning', label: '对线期分析', type: 'text' },
     { key: 'midGame', label: '中期分析', type: 'text' },

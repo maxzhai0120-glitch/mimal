@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7897 node -e ' *)",
+      "Bash(node -e ' *)",
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7897 git pull origin master --no-rebase)",
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7897 git push origin master)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(HTTPS_PROXY=http://127.0.0.1:7897 git push origin main)"
+    ]
+  }
+}
