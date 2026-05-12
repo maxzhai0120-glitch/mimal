@@ -6,18 +6,16 @@ import GoldCurve from '../components/GoldCurve.jsx';
 import ContributionBars from '../components/ContributionBars.jsx';
 import ItemTimeline from '../components/ItemTimeline.jsx';
 import AIReport from '../components/AIReport.jsx';
-import ChatBox from '../components/ChatBox.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
-import { chatFollowUp } from '../services/api.js';
+// import { chatFollowUp } from '../services/api.js'; // Phase 2: AI coach chat
 
 export default function Report() {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { getMatch, saveMatch, updateMatchReport, updateChatHistory } = useLocalStorage();
+  const { getMatch, saveMatch, updateMatchReport } = useLocalStorage();
   const [match, setMatch] = useState(null);
-  const [chatLoading, setChatLoading] = useState(false);
   const initializedMatchId = useRef(null);
 
   useEffect(() => {
@@ -43,35 +41,6 @@ export default function Report() {
     const updated = { ...match, report: newReport };
     setMatch(updated);
     updateMatchReport(matchId, newReport);
-  }
-
-  async function handleChatSend(content) {
-    if (!match) return;
-    const newMessages = [...(match.chatHistory || []), { role: 'user', content }];
-    const updated = { ...match, chatHistory: newMessages };
-    setMatch(updated);
-    updateChatHistory(matchId, newMessages);
-
-    setChatLoading(true);
-    try {
-      const res = await chatFollowUp(
-        matchId,
-        match.playerSlot,
-        match.modelUsed,
-        newMessages,
-        match.report
-      );
-      const replyText = typeof res?.reply === 'string' ? res.reply : JSON.stringify(res?.reply);
-      const withReply = [...newMessages, { role: 'assistant', content: replyText }];
-      setMatch((prev) => ({ ...prev, chatHistory: withReply }));
-      updateChatHistory(matchId, withReply);
-    } catch (err) {
-      const withError = [...newMessages, { role: 'assistant', content: '抱歉，出现了错误，请重试。' }];
-      setMatch((prev) => ({ ...prev, chatHistory: withError }));
-      updateChatHistory(matchId, withError);
-    } finally {
-      setChatLoading(false);
-    }
   }
 
   if (!match) {
@@ -149,11 +118,6 @@ export default function Report() {
             </div>
             <div className="space-y-4">
               <AIReport report={match.report} onReportChange={handleReportChange} />
-              <ChatBox
-                messages={match.chatHistory || []}
-                onSend={handleChatSend}
-                loading={chatLoading}
-              />
             </div>
           </div>
         </ErrorBoundary>

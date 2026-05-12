@@ -33,6 +33,32 @@ function debugLog(label, data) {
   console.log(`${separator}\n[${timestamp}] ${label}${separator}\n${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}\n`);
 }
 
+function getPerformanceSummary(matchData, playerSlot) {
+  const players = matchData.players || [];
+  const target = players.find((p) => p.player_slot === playerSlot);
+  if (!target) return '';
+
+  const teammates = players.filter((p) => p.isRadiant === target.isRadiant);
+  const rankGpm = teammates.filter((p) => p.gold_per_min > target.gold_per_min).length + 1;
+  const rankHeroDmg = teammates.filter((p) => p.hero_damage > target.hero_damage).length + 1;
+  const kda = (target.kills + target.assists) / Math.max(1, target.deaths);
+  const rankKda = teammates.filter((p) => {
+    const pkda = (p.kills + p.assists) / Math.max(1, p.deaths);
+    return pkda > kda;
+  }).length + 1;
+
+  const isTopGpm = rankGpm === 1;
+  const isTopDmg = rankHeroDmg === 1;
+  const isTopKda = rankKda === 1;
+
+  let summary = `该玩家在己方队伍的排名：GPM 第 ${rankGpm}/${teammates.length} 名，英雄伤害 第 ${rankHeroDmg}/${teammates.length} 名，KDA 第 ${rankKda}/${teammates.length} 名。`;
+  if (isTopGpm && isTopDmg) summary += ' 该玩家是本局经济和伤害双第一，属于团队核心carry表现。';
+  else if (isTopKda && (isTopGpm || isTopDmg)) summary += ' 该玩家本局表现非常亮眼，属于团队MVP级别。';
+  else if (isTopGpm || isTopDmg || isTopKda) summary += ' 该玩家在某项数据上领跑团队，表现突出。';
+
+  return summary;
+}
+
 function getPositionGuidance(position) {
   switch (position) {
     case 1:
@@ -51,6 +77,7 @@ function getPositionGuidance(position) {
       return `
 【3号位劣势路分析要求】
 - 重点评价：抗压能力（对线期经济曲线、死亡次数）、先手开团质量（控制技能命中率、站位）、团队装贡献（赤红甲/笛子/大鞋等出的时机）、为队友创造的空间（压制对方大哥发育、牵制对面辅助）
+- 角色定位：3号位是先手发起者，掌握开团节奏，辅助应配合你的先手时机（如跳刀决斗）。不是"3号位跟辅助节奏"，而是"辅助跟3号位节奏"。
 - 关键失误类型：对线崩导致中期没声音、先手脱节（队友跟不上）、团队装出的过晚或选择错误、站位过于保守不敢先手
 - 改进方向：抗压对线技巧（拉野、勾兵）、开团时机和站位、团队装优先级判断、如何利用等级优势压制对方`;
     case 4:
@@ -87,9 +114,16 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
   const position = playerData.inferredPosition || 0;
   const positionGuidance = getPositionGuidance(position);
 
-  const systemPrompt = `你是一位 8000 分以上的 DOTA2 教练，擅长通过数据帮助玩家提升水平。你的分析风格直接、具体，不泛泛而谈。你会结合具体数据指出问题，并给出可操作的改进建议。输出必须严格按 JSON 格式。`;
+  const performanceSummary = getPerformanceSummary(matchData, playerData.slot);
 
-  const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n阵容信息：\n天辉：${radiantHeroes.join('、')}\n夜魇：${direHeroes.join('、')}\n分析目标英雄：${targetHero}\n推断位置：${playerData.inferredPositionName || '未知'}（置信度：${playerData.positionConfidence || 'low'}）${positionGuidance}\n\n请按以下 JSON 格式返回分析结果（turningPoint 只写最关键的 1 个转折点）：\n{\n  "overview": "100字内总评",\n  "turningPoint": "描述局势最关键的1个转折点及原因",\n  "draftAnalysis": "阵容分析：针对该英雄，这局对线好不好打、后期好不好发挥、对面有哪些英雄要特别注意、己方阵容搭配如何",\n  "laning": "对线期分析",\n  "midGame": "中期分析",\n  "lateGame": "后期分析（如适用）",\n  "itemBuild": "装备评价",\n  "skillBuild": "技能加点评价",\n  "keyMistakes": ["具体失误1", "具体失误2", "具体失误3"],\n  "improvements": ["可操作建议1", "可操作建议2", "可操作建议3"]\n}`;
+  const systemPrompt = `你是一位 8000 分以上的 DOTA2 分析师，擅长通过数据复盘对局。你的风格直接、具体、有见地。遵守以下原则：
+1. 玩家表现优秀时，大方给予肯定和赞赏，加入情绪价值。不要吝啬夸奖。
+2. 不要给"正确的废话"（如"你必须注意走位"这种适用于任何局的泛泛之谈）。
+3. 只在玩家表现确有不足的维度给出建议；表现好的维度只描述事实、分析为什么好、给予肯定，不要画蛇添足给建议。
+4. 如果你无法从数据中推断出某个结论（如对线优劣），明确说明"数据不足以判断"，不要臆测。
+5. 输出必须严格按 JSON 格式。`;
+
+  const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n玩家本局相对表现：${performanceSummary}\n\n阵容信息：\n天辉：${radiantHeroes.join('、')}\n夜魇：${direHeroes.join('、')}\n分析目标英雄：${targetHero}\n推断位置：${playerData.inferredPositionName || '未知'}（置信度：${playerData.positionConfidence || 'low'}）${positionGuidance}\n\n【输出要求】\n请按以下 JSON 格式返回分析结果：\n{\n  "overview": "总评。如果玩家本局是MVP或carry级表现，开头就要明确赞赏，给予情绪价值。100字左右。",\n  "turningPoint": "描述局势最关键的1个转折点及原因，只写1个。",\n  "draftAnalysis": "阵容分析：该英雄在这局阵容里好不好发挥、对面有哪些英雄要特别注意、己方阵容搭配如何。不要臆测对线优劣。",\n  "laning": "对线期分析。注意：OpenDota数据不包含对线期正反补对比或lane advantage指标，你无法判断对线是优是劣。只能基于可观察数据（如10分钟前死亡次数、早期GPM、击杀日志）分析。如果数据不足以判断，请明确写出'数据不足以判断对线优劣'，不要臆测。",\n  "midGame": "中期分析。先判断中期表现好坏：好就分析为什么好并给予肯定，不好才指出问题并给建议。",\n  "lateGame": "后期分析（如适用）。同上，好就夸，不好才给建议。",\n  "itemBuild": "装备评价。分析出装是否合理。合理就肯定思路，不合理才指出并给替代方案。",\n  "skillBuild": "技能加点评价。分析加点是否合理。合理就肯定，不合理才指出。",\n  "keyMistakes": ["具体失误1", "具体失误2", ...],\n  "improvements": ["可操作建议。重要：只写玩家本局确有不足的方面，不要硬凑。如果玩家本局整体表现优秀，这个列表可以只有1条甚至为空。"]\n}`;
 
   debugLog('ANALYZE SYSTEM PROMPT', systemPrompt);
   debugLog('ANALYZE USER PROMPT', userPrompt);
