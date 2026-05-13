@@ -152,3 +152,11 @@ export function extractMatchSummary(matchData, playerSlot) {
     result: p?.win ? 'win' : 'loss',
   };
 }
+
+export async function requestParse(matchId) {
+  const res = await fetchWithRetry(`${OPENDOTA_BASE_URL}/request/${matchId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return res.json();
+}

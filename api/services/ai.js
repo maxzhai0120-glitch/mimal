@@ -59,6 +59,95 @@ function getPerformanceSummary(matchData, playerSlot) {
   return summary;
 }
 
+function getLaningInfo(matchData, playerSlot) {
+  const p = matchData.players?.find((pl) => pl.player_slot === playerSlot);
+  if (!p) return null;
+
+  const isRadiant = p.isRadiant;
+  const enemyTeam = matchData.players?.filter((pl) => pl.isRadiant !== isRadiant) || [];
+  const teammates = matchData.players?.filter((pl) => pl.isRadiant === isRadiant && pl.player_slot !== playerSlot) || [];
+
+  const laneMap = { 1: '优势路', 2: '中路', 3: '劣势路' };
+  const laneRoleMap = { 1: '1号位核心', 2: '2号位中单', 3: '3号位劣势路', 4: '辅助' };
+
+  const sameLaneTeammates = teammates.filter((tm) => tm.lane === p.lane);
+  const sameLaneEnemies = enemyTeam.filter((ep) => ep.lane === p.lane);
+
+  return {
+    lane: p.lane,
+    laneName: laneMap[p.lane] || `lane=${p.lane}`,
+    laneRole: p.lane_role,
+    laneRoleName: laneRoleMap[p.lane_role] || `lane_role=${p.lane_role}`,
+    sameLaneTeammates: sameLaneTeammates.map((tm) => getHeroName(tm.hero_id)),
+    sameLaneEnemies: sameLaneEnemies.map((ep) => getHeroName(ep.hero_id)),
+  };
+}
+
+function getPos3Context(matchData, playerSlot) {
+  const p = matchData.players?.find((pl) => pl.player_slot === playerSlot);
+  if (!p) return '';
+
+  const keyItemNames = {
+    blink: '跳刀',
+    black_king_bar: 'BKB',
+    blade_mail: '刃甲',
+    crimson_guard: '赤红甲',
+    pipe: '洞察烟斗',
+    mekansm: '梅肯斯姆',
+    guardian_greaves: '卫士胫甲',
+    aghanims_shard: '阿哈利姆魔晶',
+    aghanims_scepter: '阿哈利姆神杖',
+    force_staff: '原力法杖',
+    heavens_halberd: '天堂之戟',
+    lotus_orb: '清莲宝珠',
+    shivas_guard: '希瓦的守护',
+    assault: '强袭胸甲',
+    heart: '魔龙之心',
+    travel_boots: '远行鞋',
+    travel_boots_2: '远行鞋2',
+  };
+
+  const purchases = p.purchase_log || [];
+  const itemTimings = [];
+  for (const [key, name] of Object.entries(keyItemNames)) {
+    const purchase = purchases.find((pur) => pur.key === key);
+    if (purchase) {
+      const minute = Math.floor(purchase.time / 60);
+      itemTimings.push(`${name}(${minute}min)`);
+    }
+  }
+
+  const laningEndMinute = 10;
+  const goldTicks = p.gold_t || [];
+  const lhTicks = p.lh_t || [];
+
+  const earlyGpm = goldTicks.length > laningEndMinute
+    ? Math.floor((goldTicks[laningEndMinute] - goldTicks[0]) / laningEndMinute)
+    : null;
+
+  const avgLh = lhTicks.length > laningEndMinute
+    ? ((lhTicks[laningEndMinute] - lhTicks[0]) / laningEndMinute).toFixed(1)
+    : null;
+
+  const teammates = matchData.players?.filter((pl) => pl.isRadiant === p.isRadiant) || [];
+  const rankTowerDmg = teammates.filter((pl) => pl.tower_damage > p.tower_damage).length + 1;
+
+  let context = '';
+  if (itemTimings.length) {
+    context += `关键装备时间线：${itemTimings.join('、')}。`;
+  }
+  if (earlyGpm) {
+    context += `对线期(前10min)平均GPM约${earlyGpm}。`;
+  }
+  if (avgLh) {
+    context += `对线期平均每分钟正反补${avgLh}个。`;
+  }
+  context += `对线效率${p.lane_efficiency_pct || '未知'}%。`;
+  context += `推塔伤害排名：己方第${rankTowerDmg}/${teammates.length}。`;
+
+  return context;
+}
+
 function getPositionGuidance(position) {
   switch (position) {
     case 1:
@@ -78,6 +167,10 @@ function getPositionGuidance(position) {
 【3号位劣势路分析要求】
 - 重点评价：抗压能力（对线期经济曲线、死亡次数）、先手开团质量（控制技能命中率、站位）、团队装贡献（赤红甲/笛子/大鞋等出的时机）、为队友创造的空间（压制对方大哥发育、牵制对面辅助）
 - 角色定位：3号位是先手发起者，掌握开团节奏，辅助应配合你的先手时机（如跳刀决斗）。不是"3号位跟辅助节奏"，而是"辅助跟3号位节奏"。
+- 数据锚点（你有以下具体数据用于分析）：
+  ① 关键装备时间线——跳刀是否在15分钟前、BKB是否在20分钟前、团队装是否在对线期结束后尽快出
+  ② 对线期评分——laneEfficiencyPct>70%为优秀，50-70%为正常，<50%为崩了；前10分钟平均GPM和正反补数量
+  ③ 推塔贡献排名——反映是否为团队创造了空间
 - 关键失误类型：对线崩导致中期没声音、先手脱节（队友跟不上）、团队装出的过晚或选择错误、站位过于保守不敢先手
 - 改进方向：抗压对线技巧（拉野、勾兵）、开团时机和站位、团队装优先级判断、如何利用等级优势压制对方`;
     case 4:
@@ -116,6 +209,19 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
 
   const performanceSummary = getPerformanceSummary(matchData, playerData.slot);
 
+  const laningInfo = getLaningInfo(matchData, playerData.slot);
+  const laningContext = laningInfo
+    ? `\n对线信息：玩家在${laningInfo.laneName}（${laningInfo.laneRoleName}），同路队友：${laningInfo.sameLaneTeammates.join('、') || '无'}，对线敌方英雄：${laningInfo.sameLaneEnemies.join('、') || '数据不足以判断'}。`
+    : '';
+
+  const pos3Context = position === 3 ? getPos3Context(matchData, playerData.slot) : '';
+
+  // 构建数据可用性说明
+  const hasMinuteData = playerData.lhTicks && playerData.lhTicks.length > 0;
+  const dataAvailability = hasMinuteData
+    ? ''
+    : '\n\n【数据可用性说明】该对局未被OpenDota解析，缺少laneEfficiencyPct、lhTicks、dnTicks等分钟级数据。分析对线表现时，请基于总补刀数(lastHits)和游戏时长做粗略估算，或直接说明"数据不足以判断对线细节"。不要臆测。';
+
   const systemPrompt = `你是一位 8000 分以上的 DOTA2 分析师，擅长通过数据复盘对局。你的风格直接、具体、有见地。遵守以下原则：
 1. 玩家表现优秀时，大方给予肯定和赞赏，加入情绪价值。不要吝啬夸奖。
 2. 不要给"正确的废话"（如"你必须注意走位"这种适用于任何局的泛泛之谈）。
@@ -123,7 +229,7 @@ export async function analyzeMatch({ matchData, playerData, matchSummary, ragDoc
 4. 如果你无法从数据中推断出某个结论（如对线优劣），明确说明"数据不足以判断"，不要臆测。
 5. 输出必须严格按 JSON 格式。`;
 
-  const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n玩家本局相对表现：${performanceSummary}\n\n阵容信息：\n天辉：${radiantHeroes.join('、')}\n夜魇：${direHeroes.join('、')}\n分析目标英雄：${targetHero}\n推断位置：${playerData.inferredPositionName || '未知'}（置信度：${playerData.positionConfidence || 'low'}）${positionGuidance}\n\n【输出要求】\n请按以下 JSON 格式返回分析结果：\n{\n  "overview": "总评。包含两部分：①本局整体评价（如果玩家是MVP或carry级表现，开头就要明确赞赏）；②最关键的1个转折点及原因。150字左右。",\n  "draftAnalysis": "阵容分析（纯基于阵容，不是基于玩家实际数据）。必须覆盖以下4点，但写成一段连贯的文字，不要分小标题：①双方阵容整体优劣——从阵容看哪边胜率更高；②对线优劣——玩家英雄面对敌方英雄，对线好不好打；③中期优劣——对线期结束后进入中期哪边更强、为什么；④后期优劣——装备成型后哪边赢面更大。",\n  "laning": "对线期分析。现在你有每分钟正反补数据（lhTicks、denyTicks）和对线效率（laneEfficiencyPct），可以基于这些数据判断对线表现。如果数据仍不足以判断，请明确写出'数据不足以判断'，不要臆测。",\n  "midGame": "中期分析。先判断中期表现好坏：好就分析为什么好并给予肯定，不好才指出问题并给建议。",\n  "lateGame": "后期分析（如适用）。同上，好就夸，不好才给建议。",\n  "itemBuild": "装备评价。分析出装是否合理。合理就肯定思路，不合理才指出并给替代方案。",\n  "skillBuild": "技能加点评价。分析加点是否合理。合理就肯定，不合理才指出。",\n  "keyMistakes": ["具体失误1", "具体失误2", ...],\n  "improvements": ["可操作建议。重要：只写玩家本局确有不足的方面，不要硬凑。如果玩家本局整体表现优秀，这个列表可以只有1条甚至为空。"]\n}`;
+  const userPrompt = `${ragContext}分析以下对局数据：\n\n对局摘要：${JSON.stringify(matchSummary, null, 2)}\n\n玩家详细数据：${JSON.stringify(playerData, null, 2)}\n\n玩家本局相对表现：${performanceSummary}${laningContext}${pos3Context ? '\n\n' + pos3Context : ''}${dataAvailability}\n\n阵容信息：\n天辉：${radiantHeroes.join('、')}\n夜魇：${direHeroes.join('、')}\n分析目标英雄：${targetHero}\n推断位置：${playerData.inferredPositionName || '未知'}（置信度：${playerData.positionConfidence || 'low'}）${positionGuidance}\n\n【输出要求】\n请按以下 JSON 格式返回分析结果：\n{\n  "overview": "局势总评。必须覆盖：①本局胜负原因和最关键转折点（从团队经济和经验变化判断）；②是否有队友表现亮眼/滚起雪球；③玩家本人的整体表现评价（MVP级开头就要明确赞赏）。200字左右。",\n  "draftAnalysis": "阵容分析（纯基于阵容，不是基于玩家实际数据）。必须覆盖以下4点，但写成一段连贯的文字，不要分小标题：①双方阵容整体优劣；②玩家对线好不好打（参考已提供的对线信息）；③中期哪边更强；④后期哪边赢面更大。",\n  "earlyGame": "前期分析（对线期+初期小规模团战）。重要规则：如果laneEfficiencyPct为空或缺失，直接说'该对局未被OpenDota解析，缺少分钟级数据，无法判断对线细节'，然后基于总补刀数(lastHits)和游戏时长做粗略估算即可。如果数据存在，利用laneEfficiencyPct（>70%优秀，50-70%正常，<50%崩了）、lhTicks、dnTicks判断。分析：①对线表现；②前期有没有在强势期发挥作用；③如果没有，是被什么阻碍了。",\n  "midGame": "中期分析。分析：①中期局势如何（优势/劣势/僵持）；②玩家有没有在应该发力的中期发挥作用；③关键团战或节奏点的得失；④导致局势变化的关键节点。",\n  "lateGame": "后期分析（如适用）。分析：①后期局势和胜负关键；②玩家有没有在后期发挥作用；③如果没有，原因是什么。",\n  "itemAndSkill": "装备与技能选择。分析：①关键装备（尤其是跳刀、BKB、团队装）的购买时机是否合理；②出装思路是否符合当前局势；③技能加点是否合理；④如果有问题，给出替代方案。",\n  "improvements": ["可操作建议。只写本局确有不足的方面，融入前中后期的具体分析中。表现优秀可以只有1条甚至为空。"]\n}`;
 
   debugLog('ANALYZE SYSTEM PROMPT', systemPrompt);
   debugLog('ANALYZE USER PROMPT', userPrompt);

@@ -47,4 +47,9 @@ export async function chatFollowUp(matchId, playerSlot, model, messages, initial
   return res.data;
 }
 
+export async function requestParse(matchId) {
+  const res = await api.post(`/parse/${matchId}`);
+  return res.data;
+}
+
 export default api;

@@ -5,6 +5,7 @@ import modelsRouter from './routes/models.js';
 import matchRouter from './routes/match.js';
 import analyzeRouter from './routes/analyze.js';
 import chatRouter from './routes/chat.js';
+import parseRouter from './routes/parse.js';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use('/api/models', modelsRouter);
 app.use('/api/match', matchRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/parse', parseRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);

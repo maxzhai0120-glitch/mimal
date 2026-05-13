@@ -8,6 +8,7 @@ import ItemTimeline from '../components/ItemTimeline.jsx';
 import AIReport from '../components/AIReport.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { requestParse } from '../services/api.js';
 // import { chatFollowUp } from '../services/api.js'; // Phase 2: AI coach chat
 
 export default function Report() {
@@ -16,6 +17,7 @@ export default function Report() {
   const location = useLocation();
   const { getMatch, saveMatch, updateMatchReport } = useLocalStorage();
   const [match, setMatch] = useState(null);
+  const [parseStatus, setParseStatus] = useState('idle'); // idle | submitting | submitted
   const initializedMatchId = useRef(null);
 
   useEffect(() => {
@@ -43,6 +45,18 @@ export default function Report() {
     updateMatchReport(matchId, newReport);
   }
 
+  async function handleRequestParse() {
+    if (parseStatus !== 'idle') return;
+    setParseStatus('submitting');
+    try {
+      await requestParse(matchId);
+      setParseStatus('submitted');
+    } catch (err) {
+      alert(err.formattedMessage || '请求解析失败');
+      setParseStatus('idle');
+    }
+  }
+
   if (!match) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
@@ -52,6 +66,7 @@ export default function Report() {
   }
 
   const pd = match.playerData || {};
+  const isMissingMinuteData = !pd.lhTicks || pd.lhTicks.length === 0;
   const goldData = pd.goldTicks || [];
   const contribData = [
     { name: '伤害', value: pd.heroDamage || 0 },
@@ -96,7 +111,7 @@ export default function Report() {
         </div>
         <div className="flex items-center justify-between mb-4">
           <MatchOverview match={overviewData} playerData={overviewPlayerData} />
-          <div className="ml-4 shrink-0">
+          <div className="ml-4 shrink-0 flex items-center gap-2">
             {match.usedKnowledgeBase ? (
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300 border border-green-700">
                 已结合知识库
@@ -105,6 +120,30 @@ export default function Report() {
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-400 border border-gray-700">
                 纯 GPT 分析
               </span>
+            )}
+            {isMissingMinuteData && (
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-900/60 text-yellow-300 border border-yellow-700">
+                  缺少分钟级数据
+                </span>
+                <button
+                  onClick={handleRequestParse}
+                  disabled={parseStatus !== 'idle'}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                    parseStatus === 'submitted'
+                      ? 'bg-green-900 text-green-300 border border-green-700 cursor-default'
+                      : parseStatus === 'submitting'
+                        ? 'bg-gray-700 text-gray-400 cursor-wait'
+                        : 'bg-dota-gold hover:bg-yellow-400 text-dota-dark'
+                  }`}
+                >
+                  {parseStatus === 'submitted'
+                    ? '✓ 已提交解析'
+                    : parseStatus === 'submitting'
+                      ? '提交中...'
+                      : '请求 OpenDota 解析'}
+                </button>
+              </div>
             )}
           </div>
         </div>

@@ -9,12 +9,10 @@ export default function AIReport({ report, onReportChange }) {
   const sections = [
     { key: 'overview', label: '局势总评', type: 'text' },
     { key: 'draftAnalysis', label: '阵容分析', type: 'text' },
-    { key: 'laning', label: '对线期分析', type: 'text' },
+    { key: 'earlyGame', label: '前期分析', type: 'text' },
     { key: 'midGame', label: '中期分析', type: 'text' },
     { key: 'lateGame', label: '后期分析', type: 'text' },
-    { key: 'itemBuild', label: '装备评价', type: 'text' },
-    { key: 'skillBuild', label: '技能加点', type: 'text' },
-    { key: 'keyMistakes', label: '关键失误', type: 'list' },
+    { key: 'itemAndSkill', label: '装备与技能选择', type: 'text' },
     { key: 'improvements', label: '改进建议', type: 'list' },
   ];
 
